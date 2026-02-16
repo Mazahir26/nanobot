@@ -755,6 +755,38 @@ Two transport modes are supported:
 
 MCP tools are automatically discovered and registered on startup. The LLM can use them alongside built-in tools — no extra configuration needed.
 
+#### Fyers Trading Platform
+
+nanobot includes built-in support for the [Fyers](https://fyers.in/) trading platform via an external MCP server.
+
+**Configuration**
+
+Add the Fyers MCP server URL to your `config.json`:
+
+```json
+{
+  "tools": {
+    "fyers": {
+      "mcp_url": "http://fyers-mcp:8000/sse/"
+    }
+  }
+}
+```
+
+Or via environment variable: `NANOBOT_TOOLS__FYERS__MCP_URL=http://fyers-mcp:8000/sse/`
+
+The Fyers MCP server will be automatically connected when you start the gateway or agent commands.
+
+**Available Tools**
+
+After authentication, use tools like:
+- `mcp_fyers_get_auth_url()` / `mcp_fyers_authenticate(auth_code)` — OAuth login
+- `mcp_fyers_get_funds()` / `mcp_fyers_get_holdings()` / `mcp_fyers_get_positions()` — Portfolio
+- `mcp_fyers_place_order(...)` / `mcp_fyers_cancel_order(id)` — Trading
+- `mcp_fyers_get_quotes(symbols)` — Market data
+
+See [`nanobot/skills/fyers/SKILL.md`](nanobot/skills/fyers/SKILL.md) for detailed usage examples.
+
 
 
 

@@ -1,3 +1,4 @@
+
 """Configuration schema using Pydantic."""
 
 from pathlib import Path
@@ -217,6 +218,11 @@ class ExecToolConfig(BaseModel):
     timeout: int = 60
 
 
+class FyersConfig(BaseModel):
+    """Fyers API configuration for external MCP server."""
+    mcp_url: str = ""  # HTTP URL to external Fyers MCP server (e.g., "http://fyers-mcp:8000/mcp")
+
+
 class MCPServerConfig(BaseModel):
     """MCP server connection configuration (stdio or HTTP)."""
     command: str = ""  # Stdio: command to run (e.g. "npx")
@@ -229,6 +235,7 @@ class ToolsConfig(BaseModel):
     """Tools configuration."""
     web: WebToolsConfig = Field(default_factory=WebToolsConfig)
     exec: ExecToolConfig = Field(default_factory=ExecToolConfig)
+    fyers: FyersConfig = Field(default_factory=FyersConfig)  # Fyers MCP server configuration
     restrict_to_workspace: bool = False  # If true, restrict all tool access to workspace directory
     mcp_servers: dict[str, MCPServerConfig] = Field(default_factory=dict)
 
