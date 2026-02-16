@@ -7,6 +7,24 @@ description: Trade on Fyers platform - place orders, manage portfolio, get marke
 
 Execute trades and manage your Fyers trading account.
 
+## Configuration
+
+Set the MCP server URL in `~/.nanobot/config.json`:
+
+```json
+{
+  "tools": {
+    "fyers": {
+      "mcp_url": "http://fyers-mcp:8000/sse/"
+    }
+  }
+}
+```
+
+Or via environment variable: `NANOBOT_TOOLS__FYERS__MCP_URL=http://fyers-mcp:8000/sse/`
+
+The server auto-connects on startup when configured.
+
 ## Tools
 
 ### Server Monitoring
@@ -23,7 +41,7 @@ Call `mcp_fyers_get_auth_url()` to generate the OAuth login URL.
 
 ### Step 2: Complete Authentication
 
-**Auto-flow** (if callback server running):
+**Auto-flow** (if callback server running can get to know from mcp_fyers_get_status):
 - Open the URL in browser → Login → Redirect captures code automatically
 - Call `mcp_fyers_authenticate()` with no arguments
 
