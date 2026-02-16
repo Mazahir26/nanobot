@@ -7,24 +7,6 @@ description: Trade on Fyers platform - place orders, manage portfolio, get marke
 
 Execute trades and manage your Fyers trading account.
 
-## Configuration
-
-Set the MCP server URL in `~/.nanobot/config.json`:
-
-```json
-{
-  "tools": {
-    "fyers": {
-      "mcp_url": "http://fyers-mcp:8000/sse/"
-    }
-  }
-}
-```
-
-Or via environment variable: `NANOBOT_TOOLS__FYERS__MCP_URL=http://fyers-mcp:8000/sse/`
-
-The server auto-connects on startup when configured.
-
 ## Tools
 
 ### Server Monitoring
