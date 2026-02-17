@@ -192,8 +192,18 @@ class AgentLoop:
                 for tool_call in response.tool_calls:
                     tools_used.append(tool_call.name)
                     args_str = json.dumps(tool_call.arguments, ensure_ascii=False)
-                    logger.info(f"Tool call: {tool_call.name}({args_str[:200]})")
-                    result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                    logger.info(f"🔧 Tool call: {tool_call.name}({args_str[:200]})")
+                    
+                    # Check if tool exists before executing
+                    if not self.tools.has(tool_call.name):
+                        logger.error(f"❌ Tool '{tool_call.name}' NOT FOUND in registry!")
+                        logger.error(f"   Available tools: {self.tools.tool_names}")
+                        result = f"Error: Tool '{tool_call.name}' not found. Available tools: {', '.join(self.tools.tool_names[:10])}..."
+                    else:
+                        logger.debug(f"   ✓ Tool '{tool_call.name}' found in registry, executing...")
+                        result = await self.tools.execute(tool_call.name, tool_call.arguments)
+                        logger.debug(f"   → Result: {result[:200] if len(result) > 200 else result}")
+                    
                     messages = self.context.add_tool_result(
                         messages, tool_call.id, tool_call.name, result
                     )

@@ -52,15 +52,21 @@ async def connect_mcp_servers(
 
     for name, cfg in mcp_servers.items():
         try:
-            if cfg.command:
+            # Handle both dict and MCPServerConfig objects
+            command = cfg.get("command") if isinstance(cfg, dict) else getattr(cfg, "command", None)
+            args = cfg.get("args", []) if isinstance(cfg, dict) else getattr(cfg, "args", [])
+            env = cfg.get("env") if isinstance(cfg, dict) else getattr(cfg, "env", None)
+            url = cfg.get("url") if isinstance(cfg, dict) else getattr(cfg, "url", None)
+
+            if command:
                 params = StdioServerParameters(
-                    command=cfg.command, args=cfg.args, env=cfg.env or None
+                    command=command, args=args, env=env
                 )
                 read, write = await stack.enter_async_context(stdio_client(params))
-            elif cfg.url:
+            elif url:
                 from mcp.client.streamable_http import streamable_http_client
                 read, write, _ = await stack.enter_async_context(
-                    streamable_http_client(cfg.url)
+                    streamable_http_client(url)
                 )
             else:
                 logger.warning(f"MCP server '{name}': no command or url configured, skipping")
@@ -73,7 +79,6 @@ async def connect_mcp_servers(
             for tool_def in tools.tools:
                 wrapper = MCPToolWrapper(session, name, tool_def)
                 registry.register(wrapper)
-                logger.debug(f"MCP: registered tool '{wrapper.name}' from server '{name}'")
 
             logger.info(f"MCP server '{name}': connected, {len(tools.tools)} tools registered")
         except Exception as e:

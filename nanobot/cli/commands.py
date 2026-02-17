@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.table import Table
 from rich.text import Text
+from loguru import logger
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.formatted_text import HTML
@@ -403,7 +404,12 @@ def gateway(
     mcp_servers = dict(config.tools.mcp_servers)
     if config.tools.fyers.mcp_url:
         mcp_servers["fyers"] = {"url": config.tools.fyers.mcp_url}
-        console.print("[green]✓[/green] Fyers MCP server configured")
+        console.print(f"[green]✓[/green] Fyers MCP server configured: {config.tools.fyers.mcp_url}")
+        logger.info(f"Fyers MCP URL configured: {config.tools.fyers.mcp_url}")
+    else:
+        logger.debug("Fyers MCP URL not configured (config.tools.fyers.mcp_url is empty)")
+    
+    logger.debug(f"MCP servers to connect: {list(mcp_servers.keys())}")
 
     # Create cron service first (callback set after agent creation)
     cron_store_path = get_data_dir() / "cron" / "jobs.json"

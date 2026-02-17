@@ -779,10 +779,12 @@ The Fyers MCP server will be automatically connected when you start the gateway 
 
 **Available Tools**
 
-After authentication, use tools like:
-- `mcp_fyers_get_auth_url()` / `mcp_fyers_authenticate(auth_code)` — OAuth login
-- `mcp_fyers_get_funds()` / `mcp_fyers_get_holdings()` / `mcp_fyers_get_positions()` — Portfolio
-- `mcp_fyers_place_order(...)` / `mcp_fyers_cancel_order(id)` — Trading
+- `mcp_fyers_server_health()` / `mcp_fyers_server_status()` — Server monitoring
+- `mcp_fyers_get_auth_url()` / `mcp_fyers_authenticate()` — OAuth authentication
+- `mcp_fyers_check_auth_status()` — Verify auth status
+- `mcp_fyers_get_profile()` / `mcp_fyers_get_funds()` / `mcp_fyers_get_holdings()` / `mcp_fyers_get_positions()` — Portfolio
+- `mcp_fyers_place_order(...)` / `mcp_fyers_modify_order(id)` / `mcp_fyers_cancel_order(id)` — Trading
+- `mcp_fyers_get_orders()` — Order history
 - `mcp_fyers_get_quotes(symbols)` — Market data
 
 See [`nanobot/skills/fyers/SKILL.md`](nanobot/skills/fyers/SKILL.md) for detailed usage examples.

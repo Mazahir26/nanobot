@@ -38,27 +38,38 @@ class ToolRegistry:
     async def execute(self, name: str, params: dict[str, Any]) -> str:
         """
         Execute a tool by name with given parameters.
-        
+
         Args:
             name: Tool name.
             params: Tool parameters.
-        
+
         Returns:
             Tool execution result as string.
-        
+
         Raises:
             KeyError: If tool not found.
         """
+        from loguru import logger
+        logger.debug(f"Registry.execute: Looking for tool '{name}'")
+        logger.debug(f"Registry.execute: Available tools: {list(self._tools.keys())}")
+        
         tool = self._tools.get(name)
         if not tool:
+            logger.error(f"Registry.execute: Tool '{name}' NOT FOUND")
             return f"Error: Tool '{name}' not found"
 
+        logger.debug(f"Registry.execute: Tool '{name}' found, validating params: {params}")
         try:
             errors = tool.validate_params(params)
             if errors:
+                logger.warning(f"Registry.execute: Validation errors for '{name}': {errors}")
                 return f"Error: Invalid parameters for tool '{name}': " + "; ".join(errors)
-            return await tool.execute(**params)
+            logger.debug(f"Registry.execute: Executing '{name}' with params: {params}")
+            result = await tool.execute(**params)
+            logger.debug(f"Registry.execute: '{name}' returned: {result[:100] if len(result) > 100 else result}...")
+            return result
         except Exception as e:
+            logger.error(f"Registry.execute: Error executing '{name}': {e}", exc_info=True)
             return f"Error executing {name}: {str(e)}"
     
     @property
