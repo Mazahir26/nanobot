@@ -204,9 +204,9 @@ place_order(
 
 | Error | Solution |
 |-------|----------|
-| "PIN not set" | Call `set_pin(pin="123456")` before authentication |
+| "PIN not set" | Call `set_pin(pin="123456")` before getting auth URL |
 | "Not authenticated" | Complete auth flow: set_pin → get_auth_url → login |
-| "Token expired" | Call `logout()` then re-authenticate |
+| "Token expired" | Call `logout()` then redo auth flow |
 | "Invalid symbol" | Use `search_symbols()` to find correct format |
 | "Insufficient margin" | Call `get_funds()` to check balance |
 | "Order rejected" | Call `get_orders()` to see reason |
