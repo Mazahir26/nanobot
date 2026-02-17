@@ -1,6 +1,6 @@
 ---
 name: fyers
-description: Trade on Fyers platform - place orders, manage portfolio, get market data. Use when user asks about stocks, trading, portfolio, holdings, or market quotes.
+description: Trade on Fyers platform - place orders, manage portfolio, get market data, search symbols. Use when user asks about stocks, trading, portfolio, holdings, positions, orders, or market quotes.
 ---
 
 # Fyers Trading Platform
@@ -10,278 +10,211 @@ Execute trades and manage your Fyers trading account via MCP server.
 ## Quick Start
 
 **First time setup:**
-1. `mcp_fyers_get_auth_url()` → Open URL in browser
-2. Login to Fyers → Auth code captured automatically (or copy manually)
-3. `mcp_fyers_authenticate(auth_code="...")` → Token saved for future sessions
+1. `check_auth_status()` - Check if already authenticated
+2. If not authenticated: `set_pin(pin="123456")` then `get_auth_url()`
+3. Login to Fyers - authentication completes automatically
+4. Done! Ready to trade
 
 **Already authenticated:**
-- Directly use trading tools: `mcp_fyers_get_holdings()`, `mcp_fyers_place_order(...)`, etc.
-- Token persists across sessions in `fyers_token.json`
+- Directly use trading tools: `get_holdings()`, `place_order()`, etc.
 
 ## Authentication Flow
 
-### Check Server Status First
+### Step 1: Check Status (Always First)
 
 ```bash
-mcp_fyers_server_status()
+check_auth_status()
 ```
 
-This tells you:
-- If callback server is running (auto-capture mode)
-- Current authentication state
-- Redirect URI configuration
+- If "Authenticated" → Skip to trading
+- If "Not authenticated" → Continue to Step 2
 
-### Step 1: Generate Auth URL
+### Step 2: Set PIN (Only if not authenticated)
 
 ```bash
-mcp_fyers_get_auth_url()
+set_pin(pin="123456")
 ```
 
-Returns a URL like: `https://api-t1.fyers.in/api/v3/generate-authcode?client_id=XXX&redirect_uri=...`
+PIN is your 6-digit Fyers trading PIN. Required before authentication.
 
-### Step 2: Complete OAuth Login
+### Step 3: Get Auth URL
 
-**Mode A: Automatic Callback (Recommended)**
+```bash
+get_auth_url()
+```
 
-Check if enabled: `mcp_fyers_server_status()` → `callback_server_enabled: true`
-if `callback_server_enabled` this is returned true then user does not have to manualy paste the code (It will automaiclly login)
+Returns OAuth login URL. Open in browser.
 
-1. Open the auth URL in browser
+### Step 4: Login
+
+1. Open auth URL in browser
 2. Login to Fyers account
-3. Redirected to callback server → auth code captured automatically
-4. Call `mcp_fyers_authenticate()` with **no arguments**
-5. ✅ Token saved to `fyers_token.json`
+3. Redirected back - authentication completes automatically
+4. Tokens saved, auto-refresh enabled
 
-**Mode B: Manual Copy-Paste (Headless/Server)**
-
-Check if enabled: `mcp_fyers_server_status()` → `callback_server_enabled: false`
-
-1. Open the auth URL in browser
-2. Login to Fyers account
-3. **Copy the `auth_code` parameter** from redirect URL:
-   - URL format: `http://localhost:300/?auth_code=eyJhbGciOiJIUzI1NiIs...`
-   - Copy everything after `auth_code=`
-4. Call `mcp_fyers_authenticate(auth_code="COPIED_CODE_HERE")`
-5. ✅ Token saved to `fyers_token.json`
-
-### Step 3: Verify Authentication
+### Step 5: Verify (Optional)
 
 ```bash
-mcp_fyers_check_auth_status()
+check_auth_status()
 ```
 
-Returns:
-- `"✓ Authenticated and connected to Fyers API"` → Ready to trade
-- `"✗ Token invalid: ..."` → Re-authenticate
-- `"Not authenticated..."` → Call `mcp_fyers_authenticate()`
-
-### Token Persistence
-
-- Access token saved to `fyers_token.json` after successful auth
-- Automatically loaded on server restart
-- No need to re-authenticate unless token expires
-- Call `mcp_fyers_logout()` to clear token
+Should confirm authenticated status.
 
 ## Tools Reference
-
-### Server Monitoring
-
-| Tool | Description |
-|------|-------------|
-| `mcp_fyers_server_health()` | Check server health and auth status |
-| `mcp_fyers_server_status()` | Get detailed config (callback mode, token file path) |
 
 ### Authentication
 
 | Tool | Description |
 |------|-------------|
-| `mcp_fyers_get_auth_url()` | Generate OAuth login URL |
-| `mcp_fyers_authenticate(auth_code)` | Complete OAuth (code optional if auto-callback) |
-| `mcp_fyers_check_auth_status()` | Verify authentication status |
-| `mcp_fyers_logout()` | Clear stored token |
+| `set_pin(pin)` | Set 6-digit trading PIN (required first) |
+| `get_auth_url()` | Generate OAuth login URL |
+| `check_auth_status()` | Verify authentication status |
+| `refresh_access_token()` | Manually refresh token |
+| `remove_pin()` | Clear PIN, stop auto-refresh |
+| `logout()` | Clear token and logout |
 
 ### Portfolio & Funds
 
 | Tool | Description |
 |------|-------------|
-| `mcp_fyers_get_profile()` | User profile (name, email, account type) |
-| `mcp_fyers_get_funds()` | Account balance, margins, collateral |
-| `mcp_fyers_get_holdings()` | Portfolio holdings with P&L |
-| `mcp_fyers_get_positions()` | Current open positions |
+| `get_profile()` | User profile info |
+| `get_funds()` | Account balance, margins |
+| `get_holdings()` | Portfolio holdings with P&L |
+| `get_positions()` | Current open positions |
+| `get_orders()` | Order history |
 
 ### Trading
 
 | Tool | Description |
 |------|-------------|
-| `mcp_fyers_place_order(...)` | Place new order |
-| `mcp_fyers_modify_order(id, ...)` | Modify existing order |
-| `mcp_fyers_cancel_order(id)` | Cancel pending order |
-| `mcp_fyers_get_orders()` | Order history |
+| `place_order(...)` | Place new order |
+| `modify_order(id, ...)` | Modify existing order |
+| `cancel_order(id)` | Cancel pending order |
 
 ### Market Data
 
 | Tool | Description |
 |------|-------------|
-| `mcp_fyers_get_quotes(symbols)` | Real-time quotes for multiple symbols |
+| `get_quotes(symbols)` | Real-time quotes |
+
+### Symbol Search
+
+| Tool | Description |
+|------|-------------|
+| `search_symbols(query, limit)` | Fuzzy search (handles typos) |
+| `get_symbol_details(symbol)` | Get full symbol details |
+| `refresh_symbol_master()` | Refresh symbol data |
 
 ## Trading Parameters
 
-### `mcp_fyers_place_order`
+### `place_order`
 
 **Required:**
-- `symbol`: Trading instrument (e.g., `"NSE:SBIN-EQ"`, `"NSE:NIFTY24FEB22000CE"`)
-- `qty`: Quantity (integer, e.g., `10`)
-- `side`: `1` = BUY, `-1` = SELL
-- `type`: `1` = LIMIT, `2` = MARKET, `3` = SL-M, `4` = SL-L
-- `productType`: `"CNC"` (delivery), `"INTRADAY"`, `"MARGIN"`, `"COV"`, `"BO"`
-- `validity`: `"DAY"` or `"IOC"`
+- `symbol` - Trading instrument (e.g., `"NSE:SBIN-EQ"`)
+- `qty` - Quantity (integer)
+- `side` - `1` = BUY, `-1` = SELL
+- `type` - `1` = LIMIT, `2` = MARKET, `3` = SL-M, `4` = SL-L
+- `productType` - `"CNC"`, `"INTRADAY"`, `"MARGIN"`, etc.
+- `validity` - `"DAY"` or `"IOC"`
 
 **Optional:**
-- `limitPrice`: Price for LIMIT orders (e.g., `2250.50`)
-- `stopPrice`: Stop loss trigger for SL orders
-- `disclosedQty`: Quantity to disclose (for large orders)
-- `orderTag`: Tag for tracking (e.g., `"my_strategy_1"`)
-- `segment`: Segment ID (e.g., `10` for NSE_EQ)
-- `stopLoss`: Stop loss for BO/CO orders
-- `takeProfit`: Take profit for BO/CO orders
+- `limitPrice` - Price for LIMIT orders
+- `stopPrice` - Stop loss for SL orders
+- `disclosedQty` - Quantity to disclose
+- `orderTag` - Tag for tracking
+- `stopLoss` / `takeProfit` - For BO/CO orders
 
-### `mcp_fyers_modify_order`
+### `get_quotes`
 
 **Required:**
-- `id`: Order ID to modify (e.g., `"2402170001234567"`)
+- `symbols` - Array of instruments
+  - Example: `["NSE:SBIN-EQ", "NSE:RELIANCE-EQ"]`
 
-**Optional (provide at least one):**
-- `qty`: New quantity
-- `limitPrice`: New limit price
-- `stopPrice`: New stop price
-- `type`: New order type
-- `validity`: New validity
-
-### `mcp_fyers_get_quotes`
+### `search_symbols`
 
 **Required:**
-- `symbols`: Array of instruments
-  - Format: `"NSE:SYMBOL-EQ"` for equity
-  - Example: `["NSE:SBIN-EQ", "NSE:RELIANCE-EQ", "NSE:TATAMOTORS-EQ"]`
+- `query` - Search term (company name or symbol)
+- `limit` - Max results (default 20)
+
+**Examples:**
+- `"reliance"` → NSE:RELIANCE-EQ
+- `"nifty 22000"` → NSE:NIFTY24FEB22000CE
+- `"tata"` → All Tata companies
 
 ## Example Workflows
 
-### Workflow 1: First-Time Setup
+### First-Time Setup
 
 ```
-1. mcp_fyers_server_status()
-   → Check callback mode and auth state
-
-2. mcp_fyers_get_auth_url()
-   → Returns: "Open this URL: https://api-t1.fyers.in/..."
-
-3. [User opens URL, logs in to Fyers]
-
-4a. If auto-callback: mcp_fyers_authenticate()
-4b. If manual: mcp_fyers_authenticate(auth_code="eyJhbGci...")
-
-5. mcp_fyers_check_auth_status()
-   → "✓ Authenticated and connected to Fyers API"
+1. check_auth_status() → "Not authenticated"
+2. set_pin(pin="123456")
+3. get_auth_url()
+4. [Open URL, login to Fyers]
+5. check_auth_status() → "Authenticated"
 ```
 
-### Workflow 2: Check Portfolio
+### Returning User (Already Authenticated)
 
 ```
-1. mcp_fyers_get_funds()
-   → Returns: {"fund_available": 50000, "margin_used": 12000, ...}
-
-2. mcp_fyers_get_holdings()
-   → Returns: {"holdings": [{"symbol": "NSE:SBIN-EQ", "qty": 100, "pnl": 2500}, ...]}
-
-3. mcp_fyers_get_positions()
-   → Returns: {"positions": [{"symbol": "NSE:TATAMOTORS-EQ", "side": "BUY", "qty": 50}, ...]}
+1. check_auth_status() → "Authenticated"
+2. get_holdings()  # Ready to trade
 ```
 
-### Workflow 3: Place Market Order
+### Find Symbol and Place Order
 
 ```
-1. mcp_fyers_get_quotes(symbols=["NSE:SBIN-EQ"])
-   → Check current price: ₹225.50
-
-2. mcp_fyers_place_order(
-       symbol="NSE:SBIN-EQ",
-       qty=10,
-       side=1,
-       type=2,
-       productType="CNC",
-       validity="DAY"
-     )
-   → Returns: {"id": "2402170001234567", "status": "success"}
-
-3. mcp_fyers_get_orders()
-   → Confirm order placed
+1. search_symbols(query="reliance", limit=5)
+2. get_quotes(symbols=["NSE:RELIANCE-EQ"])
+3. place_order(symbol="NSE:RELIANCE-EQ", qty=5, side=1, type=2, productType="CNC", validity="DAY")
 ```
 
-### Workflow 4: Place Limit Order with Stop Loss
+### Check Portfolio
 
 ```
-mcp_fyers_place_order(
+1. get_funds()
+2. get_holdings()
+3. get_positions()
+```
+
+### Place Limit Order
+
+```
+place_order(
     symbol="NSE:RELIANCE-EQ",
     qty=5,
     side=1,
-    type=1,           # LIMIT order
+    type=1,
     productType="CNC",
     validity="DAY",
-    limitPrice=2450.00,
-    stopLoss=2400.00,
-    takeProfit=2550.00
+    limitPrice=2450.00
 )
 ```
 
-### Workflow 5: Modify and Cancel Orders
+### Modify/Cancel Order
 
 ```
-1. mcp_fyers_get_orders()
-   → Find order ID: "2402170001234567"
-
-2. mcp_fyers_modify_order(
-       id="2402170001234567",
-       limitPrice=2260.00  # Increase limit price
-     )
-
-3. [If needed] mcp_fyers_cancel_order(id="2402170001234567")
+1. get_orders() → Find order ID
+2. modify_order(id="...", limitPrice=2260.00)
+3. cancel_order(id="...")  # If needed
 ```
 
-## Symbol Format Reference
-
-| Segment | Format | Example |
-|---------|--------|---------|
-| NSE Equity | `NSE:SYMBOL-EQ` | `NSE:SBIN-EQ` |
-| NSE Futures | `NSE:SYMBOL24FEBFUT` | `NSE:NIFTY24FEBFUT` |
-| NSE Options | `NSE:SYMBOL24FEB22000CE` | `NSE:NIFTY24FEB22000CE` |
-| BSE Equity | `BSE:SYMBOL-EQ` | `BSE:RELIANCE-EQ` |
-| MCX Commodity | `MCX:SYMBOL24FEBFUT` | `MCX:GOLD24FEBFUT` |
+**Tip:** Use `search_symbols()` to find exact symbol format.
 
 ## Error Handling
 
-**"Not authenticated"**
-→ Call `mcp_fyers_check_auth_status()` then `mcp_fyers_authenticate()`
+| Error | Solution |
+|-------|----------|
+| "PIN not set" | Call `set_pin(pin="123456")` before authentication |
+| "Not authenticated" | Complete auth flow: set_pin → get_auth_url → login |
+| "Token expired" | Call `logout()` then re-authenticate |
+| "Invalid symbol" | Use `search_symbols()` to find correct format |
+| "Insufficient margin" | Call `get_funds()` to check balance |
+| "Order rejected" | Call `get_orders()` to see reason |
 
-**"Token expired"**
-→ Call `mcp_fyers_logout()` then re-authenticate
+## Key Points
 
-**"Invalid symbol"**
-→ Check symbol format: `NSE:SYMBOL-EQ` for equity
-
-**"Insufficient margin"**
-→ Call `mcp_fyers_get_funds()` to check available balance
-
-**"Order rejected"**
-→ Call `mcp_fyers_get_orders()` to see rejection reason
-
-## Configuration
-
-The MCP server is configured via:
-- `FYERS_APP_ID` / `FYERS_SECRET_KEY` → Fyers API credentials
-- `FYERS_REDIRECT_URI` → Callback URL (auto-flow if `:8080`)
-- `TOKEN_FILE` → Token persistence path (default: `./fyers_token.json`)
-
-Server endpoints:
-- MCP: `http://host:8333/mcp` (streamable HTTP transport)
-- Callback: `http://host:8080/` (only if auto-flow enabled)
-- Health: `http://host:8333/health` (requires `X-API-Key` header)
+1. **PIN mandatory** - Must call `set_pin()` before `get_auth_url()`
+2. **Auto-complete** - Login redirects back and auth completes automatically
+3. **Auto-refresh** - Token refreshes automatically every 20 hours
+4. **Fuzzy search** - Use `search_symbols()` to handle typos
+5. **Check status first** - Always use `check_auth_status()` before trading
