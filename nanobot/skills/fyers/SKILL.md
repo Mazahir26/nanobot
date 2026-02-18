@@ -11,8 +11,8 @@ Execute trades and manage your Fyers trading account via MCP server.
 
 **First time setup:**
 1. `check_auth_status()` - Check if already authenticated
-2. If not authenticated: `set_pin(pin="123456")` then `get_auth_url()`
-3. Login to Fyers - authentication completes automatically
+2. If not authenticated: `set_pin(pin="1234")` then `get_auth_url()`
+3. Click the returned URL to login - authentication completes automatically
 4. Done! Ready to trade
 
 **Already authenticated:**
@@ -32,27 +32,26 @@ check_auth_status()
 ### Step 2: Set PIN (Only if not authenticated)
 
 ```bash
-set_pin(pin="123456")
+set_pin(pin="1234")
 ```
 
-PIN is your 6-digit Fyers trading PIN. Required before authentication.
+PIN is your 4-digit Fyers trading PIN. Required before authentication.
 
-### Step 3: Get Auth URL
+### Step 3: Get Auth URL (Returns Clickable Link)
 
 ```bash
 get_auth_url()
 ```
 
-Returns OAuth login URL. Open in browser.
+Returns a clickable OAuth login URL. **Click it** to open in browser.
 
-### Step 4: Login
+**How it works:**
+- You login to Fyers in the browser
+- Fyers redirects to our callback server 
+- **Auth code is captured automatically** - no copy-paste needed
+- Tokens are saved, auto-refresh enabled
 
-1. Open auth URL in browser
-2. Login to Fyers account
-3. Redirected back - authentication completes automatically
-4. Tokens saved, auto-refresh enabled
-
-### Step 5: Verify (Optional)
+### Step 4: Verify
 
 ```bash
 check_auth_status()
@@ -67,7 +66,7 @@ Should confirm authenticated status.
 | Tool | Description |
 |------|-------------|
 | `set_pin(pin)` | Set 6-digit trading PIN (required first) |
-| `get_auth_url()` | Generate OAuth login URL |
+| `get_auth_url()` | Generate clickable OAuth URL |
 | `check_auth_status()` | Verify authentication status |
 | `refresh_access_token()` | Manually refresh token |
 | `remove_pin()` | Clear PIN, stop auto-refresh |
@@ -204,8 +203,8 @@ place_order(
 
 | Error | Solution |
 |-------|----------|
-| "PIN not set" | Call `set_pin(pin="123456")` before getting auth URL |
-| "Not authenticated" | Complete auth flow: set_pin → get_auth_url → login |
+| "PIN not set" | Call `set_pin(pin="1236")` before getting auth URL |
+| "Not authenticated" | Complete auth flow: set_pin → get_auth_url → click URL → login |
 | "Token expired" | Call `logout()` then redo auth flow |
 | "Invalid symbol" | Use `search_symbols()` to find correct format |
 | "Insufficient margin" | Call `get_funds()` to check balance |
@@ -213,8 +212,8 @@ place_order(
 
 ## Key Points
 
-1. **PIN mandatory** - Must call `set_pin()` before `get_auth_url()`
-2. **Auto-complete** - Login redirects back and auth completes automatically
-3. **Auto-refresh** - Token refreshes automatically every 20 hours
-4. **Fuzzy search** - Use `search_symbols()` to handle typos
-5. **Check status first** - Always use `check_auth_status()` before trading
+1. **Check status first** - Always use `check_auth_status()` before trading
+2. **PIN mandatory** - Must call `set_pin()` before `get_auth_url()`
+3. **Auto-capture** - OAuth redirects to our server, code captured automatically (no copy-paste)
+4. **Clickable URL** - `get_auth_url()` returns a clickable link - just click and login
+5. **Auto-refresh** - Token refreshes automatically every 20 hours
