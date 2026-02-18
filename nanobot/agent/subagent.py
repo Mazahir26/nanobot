@@ -101,8 +101,9 @@ class SubagentManager:
         
         try:
             # Build subagent tools (no message tool, no spawn tool)
+            # File tools - always anchor relative paths to workspace
             tools = ToolRegistry()
-            allowed_dir = self.workspace if self.restrict_to_workspace else None
+            allowed_dir = self.workspace
             tools.register(ReadFileTool(allowed_dir=allowed_dir))
             tools.register(WriteFileTool(allowed_dir=allowed_dir))
             tools.register(EditFileTool(allowed_dir=allowed_dir))

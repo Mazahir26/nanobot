@@ -8,9 +8,18 @@ from nanobot.agent.tools.base import Tool
 
 def _resolve_path(path: str, allowed_dir: Path | None = None) -> Path:
     """Resolve path and optionally enforce directory restriction."""
-    resolved = Path(path).expanduser().resolve()
+    p = Path(path).expanduser()
+    
+    # Anchor relative paths to allowed_dir
+    if allowed_dir and not p.is_absolute():
+        p = allowed_dir / p
+    
+    resolved = p.resolve()
+    
+    # Enforce restriction if allowed_dir is set
     if allowed_dir and not str(resolved).startswith(str(allowed_dir.resolve())):
         raise PermissionError(f"Path {path} is outside allowed directory {allowed_dir}")
+    
     return resolved
 
 

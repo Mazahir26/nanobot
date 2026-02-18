@@ -93,8 +93,9 @@ class AgentLoop:
     
     def _register_default_tools(self) -> None:
         """Register the default set of tools."""
-        # File tools (restrict to workspace if configured)
-        allowed_dir = self.workspace if self.restrict_to_workspace else None
+        # File tools - always anchor relative paths to workspace
+        # restrict_to_workspace only controls whether ABSOLUTE paths outside workspace are blocked
+        allowed_dir = self.workspace
         self.tools.register(ReadFileTool(allowed_dir=allowed_dir))
         self.tools.register(WriteFileTool(allowed_dir=allowed_dir))
         self.tools.register(EditFileTool(allowed_dir=allowed_dir))
