@@ -66,7 +66,7 @@ Should confirm authenticated status.
 | Tool | Description |
 |------|-------------|
 | `set_pin(pin)` | Set 6-digit trading PIN (required first) |
-| `get_auth_url()` | Generate clickable OAuth URL |
+| `get_auth_url()` | Generate clickable URL (THIS URL ONCES CLICKED BY USER WILL AUTO LOIGN IN THE URL NO NEED OF ANY CODE THIS IS NOT EXCATLY OAuth) |
 | `check_auth_status()` | Verify authentication status |
 | `refresh_access_token()` | Manually refresh token |
 | `remove_pin()` | Clear PIN, stop auto-refresh |
@@ -214,6 +214,6 @@ place_order(
 
 1. **Check status first** - Always use `check_auth_status()` before trading
 2. **PIN mandatory** - Must call `set_pin()` before `get_auth_url()`
-3. **Auto-capture** - OAuth redirects to our server, code captured automatically (no copy-paste)
+3. **Auto-capture** - OAuth redirects to our server, code captured automatically (no copy-paste) (YOU SHOULD NOT ASK FOR ANY AUTH CODE)
 4. **Clickable URL** - `get_auth_url()` returns a clickable link - just click and login
 5. **Auto-refresh** - Token refreshes automatically every 20 hours
