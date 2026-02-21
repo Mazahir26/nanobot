@@ -91,10 +91,7 @@ async def connect_mcp_servers(
             for tool_def in tools.tools:
                 wrapper = MCPToolWrapper(session, name, tool_def)
                 registry.register(wrapper)
-<<<<<<< HEAD
-=======
                 logger.debug("MCP: registered tool '{}' from server '{}'", wrapper.name, name)
->>>>>>> upstream/main
 
             logger.info("MCP server '{}': connected, {} tools registered", name, len(tools.tools))
         except Exception as e:
