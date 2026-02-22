@@ -66,19 +66,20 @@ async def connect_mcp_servers(
                 read, write = await stack.enter_async_context(stdio_client(params))
             elif url:
                 from mcp.client.streamable_http import streamable_http_client
-                if cfg.headers:
+                headers = cfg.get("headers") if isinstance(cfg, dict) else getattr(cfg, "headers", None)
+                if headers:
                     http_client = await stack.enter_async_context(
                         httpx.AsyncClient(
-                            headers=cfg.headers,
+                            headers=headers,
                             follow_redirects=True
                         )
                     )
                     read, write, _ = await stack.enter_async_context(
-                        streamable_http_client(cfg.url, http_client=http_client)
+                        streamable_http_client(url, http_client=http_client)
                     )
                 else:
                     read, write, _ = await stack.enter_async_context(
-                        streamable_http_client(cfg.url)
+                        streamable_http_client(url)
                     )
             else:
                 logger.warning("MCP server '{}': no command or url configured, skipping", name)
