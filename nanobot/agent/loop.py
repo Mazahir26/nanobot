@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import logging.handlers
 import re
 from contextlib import AsyncExitStack
 from datetime import datetime
