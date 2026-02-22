@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import re
 from contextlib import AsyncExitStack
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Awaitable, Callable
 
@@ -95,6 +97,10 @@ class AgentLoop:
         self._mcp_connected = False
         self._mcp_connecting = False
         self._consolidating: set[str] = set()  # Session keys with consolidation in progress
+        
+        # Setup tool call logger
+        self._tool_logger = self._setup_tool_logger()
+        
         self._register_default_tools()
 
     def _register_default_tools(self) -> None:
@@ -113,6 +119,37 @@ class AgentLoop:
         self.tools.register(SpawnTool(manager=self.subagents))
         if self.cron_service:
             self.tools.register(CronTool(self.cron_service))
+
+    @staticmethod
+    def _setup_tool_logger() -> logging.Logger:
+        """Setup dedicated tool call logger with 5-day rotation."""
+        log_dir = Path.home() / ".nanobot" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        
+        tool_logger = logging.getLogger("nanobot.tool_calls")
+        tool_logger.setLevel(logging.INFO)
+        
+        # TimedRotatingFileHandler - keeps 5 days of logs
+        handler = logging.handlers.TimedRotatingFileHandler(
+            log_dir / "tool_calls.log",
+            when="D",           # Daily rotation
+            interval=1,         # Rotate every day
+            backupCount=5,      # Keep 5 days of logs
+            encoding="utf-8",
+            atTime=datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).time()
+        )
+        
+        # Format: [timestamp] tool_name(args) -> result_preview
+        formatter = logging.Formatter(
+            "%(asctime)s | TOOL: %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S"
+        )
+        handler.setFormatter(formatter)
+        
+        if not tool_logger.handlers:
+            tool_logger.addHandler(handler)
+        
+        return tool_logger
 
     async def _connect_mcp(self) -> None:
         """Connect to configured MCP servers (one-time, lazy)."""
@@ -194,7 +231,6 @@ class AgentLoop:
                     clean = self._strip_think(response.content)
                     if clean:
                         await on_progress(clean)
-                    await on_progress(self._tool_hint(response.tool_calls))
 
                 tool_call_dicts = [
                     {
@@ -226,6 +262,15 @@ class AgentLoop:
                         logger.debug(f"   ✓ Tool '{tool_call.name}' found in registry, executing...")
                         result = await self.tools.execute(tool_call.name, tool_call.arguments)
                         logger.debug(f"   → Result: {result[:200] if len(result) > 200 else result}")
+                    
+                    # Log tool call to file with full details
+                    result_preview = result[:500] + "..." if len(result) > 500 else result
+                    self._tool_logger.info(
+                        "%s | ARGS: %s | RESULT: %s",
+                        tool_call.name,
+                        json.dumps(tool_call.arguments, ensure_ascii=False),
+                        result_preview
+                    )
 
                     messages = self.context.add_tool_result(
                         messages, tool_call.id, tool_call.name, result
