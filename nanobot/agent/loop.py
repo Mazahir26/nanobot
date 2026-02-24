@@ -62,6 +62,7 @@ class AgentLoop:
         restrict_to_workspace: bool = False,
         session_manager: SessionManager | None = None,
         mcp_servers: dict | None = None,
+        google_search: bool = False,
     ):
         from nanobot.config.schema import ExecToolConfig
         self.bus = bus
@@ -76,6 +77,7 @@ class AgentLoop:
         self.exec_config = exec_config or ExecToolConfig()
         self.cron_service = cron_service
         self.restrict_to_workspace = restrict_to_workspace
+        self.google_search = google_search
 
         self.context = ContextBuilder(workspace)
         self.sessions = session_manager or SessionManager(workspace)
@@ -90,6 +92,7 @@ class AgentLoop:
             brave_api_key=brave_api_key,
             exec_config=self.exec_config,
             restrict_to_workspace=restrict_to_workspace,
+            google_search=self.google_search,
         )
 
         self._running = False
@@ -225,6 +228,7 @@ class AgentLoop:
                 model=self.model,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
+                google_search=self.google_search,
             )
 
             if response.has_tool_calls:

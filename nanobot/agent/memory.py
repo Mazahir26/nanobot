@@ -115,6 +115,7 @@ class MemoryStore:
                 ],
                 tools=_SAVE_MEMORY_TOOL,
                 model=model,
+                google_search=False,  # Memory consolidation doesn't need web search
             )
 
             if not response.has_tool_calls:

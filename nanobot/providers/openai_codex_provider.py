@@ -31,7 +31,19 @@ class OpenAICodexProvider(LLMProvider):
         model: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.7,
+        google_search: bool = False,
     ) -> LLMResponse:
+        """
+        Send a chat completion request via OpenAI Codex.
+        
+        Args:
+            messages: List of message dicts with 'role' and 'content'.
+            tools: Optional list of tool definitions.
+            model: Model identifier.
+            max_tokens: Maximum tokens in response.
+            temperature: Sampling temperature.
+            google_search: Enable Google Search grounding (not supported for Codex).
+        """
         model = model or self.default_model
         system_prompt, input_items = _convert_messages(messages)
 

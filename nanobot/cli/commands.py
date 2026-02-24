@@ -442,6 +442,7 @@ def gateway(
         restrict_to_workspace=config.tools.restrict_to_workspace,
         session_manager=session_manager,
         mcp_servers=mcp_servers,
+        google_search=config.get_provider(config.agents.defaults.model).google_search if config.get_provider(config.agents.defaults.model) else False,
     )
     
     # Set cron callback (needs agent)
@@ -566,6 +567,7 @@ def agent(
         cron_service=cron,
         restrict_to_workspace=config.tools.restrict_to_workspace,
         mcp_servers=mcp_servers,
+        google_search=config.get_provider(config.agents.defaults.model).google_search if config.get_provider(config.agents.defaults.model) else False,
     )
     
     # Show spinner when logs are off (no output to miss); skip when logs are on
@@ -1043,6 +1045,7 @@ def cron_run(
         exec_config=config.tools.exec,
         restrict_to_workspace=config.tools.restrict_to_workspace,
         mcp_servers=config.tools.mcp_servers,
+        google_search=config.get_provider(config.agents.defaults.model).google_search if config.get_provider(config.agents.defaults.model) else False,
     )
 
     store_path = get_data_dir() / "cron" / "jobs.json"
