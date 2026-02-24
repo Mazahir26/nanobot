@@ -411,7 +411,7 @@ class AgentLoop:
             channel=msg.channel, chat_id=msg.chat_id,
         )
 
-        async def _bus_progress(content: str) -> None:
+        async def _bus_progress(content: str, tool_hint: bool = False) -> None:
             meta = dict(msg.metadata or {})
             meta["_progress"] = True
             await self.bus.publish_outbound(OutboundMessage(
