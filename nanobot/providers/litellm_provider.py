@@ -219,16 +219,9 @@ class LiteLLMProvider(LLMProvider):
         if self.extra_headers:
             kwargs["extra_headers"] = self.extra_headers
 
-        # Build tools list with Google Search if enabled
-        final_tools = list(tools) if tools else []
-        if google_search:
-            # Check if this is a Gemini model
-            spec = self._gateway or find_by_model(original_model)
-            if spec and spec.name == "gemini":
-                final_tools.append({"google_search": {}})
-
-        if final_tools:
-            kwargs["tools"] = final_tools
+        # Add tools if provided
+        if tools:
+            kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
         
         try:

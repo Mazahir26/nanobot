@@ -250,6 +250,9 @@ class WebSearchConfig(Base):
 
     api_key: str = ""  # Brave Search API key
     max_results: int = 5
+    enabled: bool = True  # If false, web_search tool is not registered
+    gemini_fallback: bool = True  # If true and no Brave key, use Gemini with Google Search grounding
+    gemini_model: str = "gemini-2.5-flash-lite"  # Model for Gemini web search fallback
 
 
 class WebToolsConfig(Base):

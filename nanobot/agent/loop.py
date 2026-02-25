@@ -30,7 +30,7 @@ from nanobot.providers.base import LLMProvider
 from nanobot.session.manager import Session, SessionManager
 
 if TYPE_CHECKING:
-    from nanobot.config.schema import ExecToolConfig
+    from nanobot.config.schema import ExecToolConfig, WebToolsConfig
     from nanobot.cron.service import CronService
 
 
@@ -64,6 +64,7 @@ class AgentLoop:
         mcp_servers: dict | None = None,
         google_search: bool = False,
         channels_config: ChannelsConfig | None = None,
+        web_config: WebToolsConfig | None = None,
     ):
         from nanobot.config.schema import ExecToolConfig
         self.bus = bus
@@ -80,6 +81,7 @@ class AgentLoop:
         self.restrict_to_workspace = restrict_to_workspace
         self.google_search = google_search
         self.channels_config = channels_config
+        self.web_config = web_config or WebToolsConfig()
 
         self.context = ContextBuilder(workspace)
         self.sessions = session_manager or SessionManager(workspace)
@@ -114,6 +116,8 @@ class AgentLoop:
 
     def _register_default_tools(self) -> None:
         """Register the default set of tools."""
+        from nanobot.providers.registry import find_by_model
+        
         allowed_dir = self.workspace if self.restrict_to_workspace else None
         for cls in (ReadFileTool, WriteFileTool, EditFileTool, ListDirTool):
             self.tools.register(cls(workspace=self.workspace, allowed_dir=allowed_dir))
@@ -122,7 +126,29 @@ class AgentLoop:
             timeout=self.exec_config.timeout,
             restrict_to_workspace=self.restrict_to_workspace,
         ))
-        self.tools.register(WebSearchTool(api_key=self.brave_api_key))
+
+        # Register web search tool only if enabled
+        if self.web_config.search.enabled:
+            # Get Gemini API key for fallback (from provider config)
+            gemini_spec = find_by_model(self.model)
+            gemini_api_key = None
+            if gemini_spec and gemini_spec.name == "gemini":
+                from nanobot.config.loader import load_config
+                try:
+                    config = load_config()
+                    gemini_api_key = config.providers.gemini.api_key or None
+                except Exception:
+                    pass
+            
+            self.tools.register(WebSearchTool(
+                api_key=self.brave_api_key,
+                max_results=self.web_config.search.max_results,
+                enabled=True,
+                gemini_fallback=self.web_config.search.gemini_fallback,
+                gemini_model=self.web_config.search.gemini_model,
+                gemini_api_key=gemini_api_key,
+            ))
+
         self.tools.register(WebFetchTool())
         self.tools.register(MessageTool(send_callback=self.bus.publish_outbound))
         self.tools.register(SpawnTool(manager=self.subagents))
@@ -241,7 +267,6 @@ class AgentLoop:
                     clean = self._strip_think(response.content)
                     if clean:
                         await on_progress(clean)
-                    await on_progress(self._tool_hint(response.tool_calls), tool_hint=True)
 
                 tool_call_dicts = [
                     {
