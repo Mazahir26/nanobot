@@ -16,8 +16,8 @@ RUN apt-get update && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
-# Add Go to PATH
-ENV PATH="/usr/local/go/bin:${PATH}"
+# Add Go and Go binaries to PATH
+ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
 
 WORKDIR /app
 
