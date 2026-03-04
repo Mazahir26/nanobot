@@ -19,13 +19,15 @@ class CustomProvider(LLMProvider):
 
     async def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
                    model: str | None = None, max_tokens: int = 4096, temperature: float = 0.7,
-                   google_search: bool = False) -> LLMResponse:
+                   reasoning_effort: str | None = None) -> LLMResponse:
         kwargs: dict[str, Any] = {
             "model": model or self.default_model,
             "messages": self._sanitize_empty_content(messages),
             "max_tokens": max(1, max_tokens),
             "temperature": temperature,
         }
+        if reasoning_effort:
+            kwargs["reasoning_effort"] = reasoning_effort
         if tools:
             kwargs.update(tools=tools, tool_choice="auto")
         try:

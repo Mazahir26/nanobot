@@ -9,8 +9,8 @@ from typing import Any, AsyncGenerator
 
 import httpx
 from loguru import logger
-
 from oauth_cli_kit import get_token as get_codex_token
+
 from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 
 DEFAULT_CODEX_URL = "https://chatgpt.com/backend-api/codex/responses"
@@ -31,19 +31,8 @@ class OpenAICodexProvider(LLMProvider):
         model: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.7,
-        google_search: bool = False,
+        reasoning_effort: str | None = None,
     ) -> LLMResponse:
-        """
-        Send a chat completion request via OpenAI Codex.
-        
-        Args:
-            messages: List of message dicts with 'role' and 'content'.
-            tools: Optional list of tool definitions.
-            model: Model identifier.
-            max_tokens: Maximum tokens in response.
-            temperature: Sampling temperature.
-            google_search: Enable Google Search grounding (not supported for Codex).
-        """
         model = model or self.default_model
         system_prompt, input_items = _convert_messages(messages)
 
@@ -62,6 +51,9 @@ class OpenAICodexProvider(LLMProvider):
             "tool_choice": "auto",
             "parallel_tool_calls": True,
         }
+
+        if reasoning_effort:
+            body["reasoning"] = {"effort": reasoning_effort}
 
         if tools:
             body["tools"] = _convert_tools(tools)
