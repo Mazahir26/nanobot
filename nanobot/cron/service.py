@@ -288,7 +288,7 @@ class CronService:
         name: str,
         schedule: CronSchedule,
         message: str,
-        deliver: bool = False,
+        deliver: bool = True,  # Default to direct delivery (simple reminder)
         channel: str | None = None,
         to: str | None = None,
         delete_after_run: bool = False,
