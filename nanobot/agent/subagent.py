@@ -106,7 +106,24 @@ class SubagentManager:
                 restrict_to_workspace=self.restrict_to_workspace,
                 path_append=self.exec_config.path_append,
             ))
-            tools.register(WebSearchTool(api_key=self.brave_api_key, proxy=self.web_proxy))
+
+            # Web search with Gemini fallback
+            from nanobot.config.loader import load_config
+            gemini_api_key = None
+            try:
+                config = load_config()
+                gemini_api_key = config.providers.gemini.api_key or None
+            except Exception:
+                pass
+
+            tools.register(WebSearchTool(
+                api_key=self.brave_api_key,
+                proxy=self.web_proxy,
+                enabled=True,
+                gemini_fallback=True,
+                gemini_model="gemini-2.5-flash-lite",
+                gemini_api_key=gemini_api_key,
+            ))
             tools.register(WebFetchTool(proxy=self.web_proxy))
             
             system_prompt = self._build_subagent_prompt()
