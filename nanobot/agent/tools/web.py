@@ -45,10 +45,10 @@ def _validate_url(url: str) -> tuple[bool, str]:
 
 
 class WebSearchTool(Tool):
-    """Search the web using Brave Search API."""
+    """Search the web using Brave Search API or Gemini grounding fallback."""
 
     name = "web_search"
-    description = "Search the web. Returns titles, URLs, and snippets."
+    description = "Search the web for current information. Uses Brave Search API if configured, otherwise falls back to Gemini with Google Search grounding."
     parameters = {
         "type": "object",
         "properties": {
@@ -58,9 +58,16 @@ class WebSearchTool(Tool):
         "required": ["query"]
     }
 
-    def __init__(self, api_key: str | None = None, max_results: int = 5, proxy: str | None = None):
+    def __init__(self, api_key: str | None = None, max_results: int = 5,
+                 enabled: bool = True, gemini_fallback: bool = True,
+                 gemini_model: str = "gemini-2.5-flash-lite", gemini_api_key: str | None = None,
+                 proxy: str | None = None):
         self._init_api_key = api_key
         self.max_results = max_results
+        self.enabled = enabled
+        self.gemini_fallback = gemini_fallback
+        self.gemini_model = gemini_model
+        self._gemini_api_key = gemini_api_key
         self.proxy = proxy
 
     @property
@@ -69,41 +76,102 @@ class WebSearchTool(Tool):
         return self._init_api_key or os.environ.get("BRAVE_API_KEY", "")
 
     async def execute(self, query: str, count: int | None = None, **kwargs: Any) -> str:
-        if not self.api_key:
-            return (
-                "Error: Brave Search API key not configured. Set it in "
-                "~/.nanobot/config.json under tools.web.search.apiKey "
-                "(or export BRAVE_API_KEY), then restart the gateway."
-            )
+        if not self.enabled:
+            return "Error: Web search is disabled. Enable it in config under tools.web.search.enabled"
+
+        # Try Brave Search first if API key is configured
+        if self.api_key:
+            try:
+                n = min(max(count or self.max_results, 1), 10)
+                logger.debug("WebSearch: {}", "proxy enabled" if self.proxy else "direct connection")
+                async with httpx.AsyncClient(proxy=self.proxy) as client:
+                    r = await client.get(
+                        "https://api.search.brave.com/res/v1/web/search",
+                        params={"q": query, "count": n},
+                        headers={"Accept": "application/json", "X-Subscription-Token": self.api_key},
+                        timeout=10.0
+                    )
+                    r.raise_for_status()
+
+                results = r.json().get("web", {}).get("results", [])
+                if not results:
+                    return f"No results for: {query}"
+
+                lines = [f"Results for: {query}\n"]
+                for i, item in enumerate(results[:n], 1):
+                    lines.append(f"{i}. {item.get('title', '')}\n   {item.get('url', '')}")
+                    if desc := item.get("description"):
+                        lines.append(f"   {desc}")
+                return "\n".join(lines)
+            except Exception as e:
+                return f"Error with Brave Search: {e}"
+
+        # Fallback: Use Gemini with Google Search grounding
+        if self.gemini_fallback:
+            return await self._gemini_web_search(query, count or self.max_results)
+        else:
+            return "Error: Brave Search API key not configured and Gemini fallback is disabled. Set tools.web.search.apiKey or enable tools.web.search.gemini_fallback"
+
+    async def _gemini_web_search(self, query: str, count: int) -> str:
+        """
+        Fallback web search using Gemini API with Google Search grounding via LiteLLM.
+        Called when Brave Search API key is not configured.
+        """
+        gemini_api_key = self._gemini_api_key
+        if not gemini_api_key:
+            return "Error: Neither Brave Search API key nor Gemini API key is configured. Set providers.gemini.apiKey in config or GEMINI_API_KEY env var."
 
         try:
-            n = min(max(count or self.max_results, 1), 10)
-            logger.debug("WebSearch: {}", "proxy enabled" if self.proxy else "direct connection")
-            async with httpx.AsyncClient(proxy=self.proxy) as client:
-                r = await client.get(
-                    "https://api.search.brave.com/res/v1/web/search",
-                    params={"q": query, "count": n},
-                    headers={"Accept": "application/json", "X-Subscription-Token": self.api_key},
-                    timeout=10.0
-                )
-                r.raise_for_status()
+            from litellm import acompletion
 
-            results = r.json().get("web", {}).get("results", [])[:n]
-            if not results:
-                return f"No results for: {query}"
+            model = self.gemini_model  # Keep prefix if present (e.g., "gemini/gemini-2.5-flash")
+            if not model.startswith("gemini/"):
+                model = f"gemini/{model}"
 
-            lines = [f"Results for: {query}\n"]
-            for i, item in enumerate(results, 1):
-                lines.append(f"{i}. {item.get('title', '')}\n   {item.get('url', '')}")
-                if desc := item.get("description"):
-                    lines.append(f"   {desc}")
-            return "\n".join(lines)
-        except httpx.ProxyError as e:
-            logger.error("WebSearch proxy error: {}", e)
-            return f"Proxy error: {e}"
+            # Call LiteLLM with google_search tool (snake_case for Gemini via LiteLLM)
+            response = await acompletion(
+                model=model,
+                messages=[{"role": "user", "content": f"Search the web for: {query}. Provide a concise summary with key facts and sources. IMPORTANT: Always ground your response in real search results - do not answer from memory. Include the URLs of sources you found at the end of your response."}],
+                tools=[{"google_search": {}}],  # Gemini uses snake_case
+                max_tokens=2048,
+                temperature=0.7,
+                api_key=gemini_api_key,
+            )
+
+            # Extract response
+            choice = response.choices[0] if response.choices else None
+            if not choice or not choice.message:
+                return f"No results found for: {query}"
+
+            answer = choice.message.content or "(No text response)"
+
+            # Try to extract grounding metadata from LiteLLM response
+            sources = []
+
+            # Check for grounding metadata in _hidden_params (LiteLLM stores it there)
+            if hasattr(response, "_hidden_params"):
+                hp = response._hidden_params
+                grounding = hp.get("gemini_grounding_metadata") or hp.get("grounding_metadata")
+                if grounding:
+                    queries = grounding.get("web_search_queries", [])
+                    if queries:
+                        sources.append(f"Search queries: {', '.join(queries)}")
+
+                    chunks = grounding.get("grounding_chunks", [])
+                    for i, chunk in enumerate(chunks[:5], 1):
+                        web_info = chunk.get("web", {})
+                        title = web_info.get("title", "Untitled")
+                        uri = web_info.get("uri", "")
+                        if uri:
+                            sources.append(f"{i}. {title} - {uri}")
+
+            if sources:
+                answer += "\n\n---\nSources:\n" + "\n".join(sources)
+
+            return f"Web Search Results for: {query}\n\n{answer}"
+
         except Exception as e:
-            logger.error("WebSearch error: {}", e)
-            return f"Error: {e}"
+            return f"Error with Gemini web search: {e}"
 
 
 class WebFetchTool(Tool):

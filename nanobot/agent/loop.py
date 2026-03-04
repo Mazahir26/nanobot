@@ -123,7 +123,24 @@ class AgentLoop:
             restrict_to_workspace=self.restrict_to_workspace,
             path_append=self.exec_config.path_append,
         ))
-        self.tools.register(WebSearchTool(api_key=self.brave_api_key, proxy=self.web_proxy))
+
+        # Web search with Gemini fallback
+        from nanobot.config.loader import load_config
+        gemini_api_key = None
+        try:
+            config = load_config()
+            gemini_api_key = config.providers.gemini.api_key or None
+        except Exception:
+            pass
+
+        self.tools.register(WebSearchTool(
+            api_key=self.brave_api_key,
+            proxy=self.web_proxy,
+            enabled=self.web_config.search.enabled,
+            gemini_fallback=self.web_config.search.gemini_fallback,
+            gemini_model=self.web_config.search.gemini_model,
+            gemini_api_key=gemini_api_key,
+        ))
         self.tools.register(WebFetchTool(proxy=self.web_proxy))
         self.tools.register(MessageTool(send_callback=self.bus.publish_outbound))
         self.tools.register(SpawnTool(manager=self.subagents))
