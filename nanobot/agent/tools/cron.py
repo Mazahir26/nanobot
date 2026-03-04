@@ -48,7 +48,10 @@ class CronTool(Tool):
                     "enum": ["add", "list", "remove"],
                     "description": "Action to perform",
                 },
-                "message": {"type": "string", "description": "Reminder message (for add)"},
+                "message": {
+                    "type": "string",
+                    "description": "Reminder/task message (for add). For simple reminders, this is sent directly. For complex tasks, agent processes this.",
+                },
                 "every_seconds": {
                     "type": "integer",
                     "description": "Interval in seconds (for recurring tasks)",
@@ -66,6 +69,11 @@ class CronTool(Tool):
                     "description": "ISO datetime for one-time execution (e.g. '2026-02-12T10:30:00')",
                 },
                 "job_id": {"type": "string", "description": "Job ID (for remove)"},
+                "deliver": {
+                    "type": "boolean",
+                    "description": "If TRUE: simple reminder sent directly to user (no agent processing). If FALSE: agent processes the task at trigger time. Default: true.",
+                    "default": True,
+                },
             },
             "required": ["action"],
         }
@@ -79,12 +87,13 @@ class CronTool(Tool):
         tz: str | None = None,
         at: str | None = None,
         job_id: str | None = None,
+        deliver: bool = True,
         **kwargs: Any,
     ) -> str:
         if action == "add":
             if self._in_cron_context.get():
                 return "Error: cannot schedule new jobs from within a cron job execution"
-            return self._add_job(message, every_seconds, cron_expr, tz, at)
+            return self._add_job(message, every_seconds, cron_expr, tz, at, deliver)
         elif action == "list":
             return self._list_jobs()
         elif action == "remove":
@@ -98,6 +107,7 @@ class CronTool(Tool):
         cron_expr: str | None,
         tz: str | None,
         at: str | None,
+        deliver: bool = True,
     ) -> str:
         if not message:
             return "Error: message is required for add"
@@ -136,7 +146,7 @@ class CronTool(Tool):
             name=message[:30],
             schedule=schedule,
             message=message,
-            deliver=True,
+            deliver=deliver,
             channel=self._channel,
             to=self._chat_id,
             delete_after_run=delete_after,

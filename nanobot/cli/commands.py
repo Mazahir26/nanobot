@@ -295,43 +295,67 @@ def gateway(
 
     # Set cron callback (needs agent)
     async def on_cron_job(job: CronJob) -> str | None:
-        """Execute a cron job through the agent."""
+        """Execute a cron job through the agent.
+        
+        Two modes:
+        - deliver=True: Simple reminder, send message directly to user (no agent processing)
+        - deliver=False: Complex task, agent processes and decides action
+        """
         from nanobot.agent.tools.cron import CronTool
         from nanobot.agent.tools.message import MessageTool
-        reminder_note = (
-            "[Scheduled Task] Timer finished.\n\n"
-            f"Task '{job.name}' has been triggered.\n"
-            f"Scheduled instruction: {job.payload.message}"
-        )
-
-        # Prevent the agent from scheduling new cron jobs during execution
-        cron_tool = agent.tools.get("cron")
-        cron_token = None
-        if isinstance(cron_tool, CronTool):
-            cron_token = cron_tool.set_cron_context(True)
-        try:
-            response = await agent.process_direct(
-                reminder_note,
-                session_key=f"cron:{job.id}",
-                channel=job.payload.channel or "cli",
-                chat_id=job.payload.to or "direct",
+        
+        if job.payload.deliver:
+            # SIMPLE REMINDER MODE - Send directly to user, skip agent processing
+            # This saves tokens and provides instant delivery for basic reminders
+            if job.payload.to:
+                from nanobot.bus.events import OutboundMessage
+                await bus.publish_outbound(OutboundMessage(
+                    channel=job.payload.channel or "cli",
+                    chat_id=job.payload.to,
+                    content=job.payload.message
+                ))
+            return job.payload.message
+        else:
+            # COMPLEX TASK MODE - Agent processes the task
+            # Use wrapper message to give agent context that this is a scheduled task
+            reminder_note = (
+                "[SCHEDULED TASK TRIGGERED]\n\n"
+                f"Task Name: {job.name}\n"
+                f"Scheduled Instruction: {job.payload.message}\n\n"
+                "This is a recurring/complex task that requires agent processing. "
+                "Execute the task as instructed (e.g., fetch data, update files, run commands). "
+                "Provide a concise summary of what you did."
             )
-        finally:
-            if isinstance(cron_tool, CronTool) and cron_token is not None:
-                cron_tool.reset_cron_context(cron_token)
 
-        message_tool = agent.tools.get("message")
-        if isinstance(message_tool, MessageTool) and message_tool._sent_in_turn:
+            # Prevent the agent from scheduling new cron jobs during execution (prevents infinite loops)
+            cron_tool = agent.tools.get("cron")
+            cron_token = None
+            if isinstance(cron_tool, CronTool):
+                cron_token = cron_tool.set_cron_context(True)
+            try:
+                response = await agent.process_direct(
+                    reminder_note,
+                    session_key=f"cron:{job.id}",
+                    channel=job.payload.channel or "cli",
+                    chat_id=job.payload.to or "direct",
+                )
+            finally:
+                if isinstance(cron_tool, CronTool) and cron_token is not None:
+                    cron_tool.reset_cron_context(cron_token)
+
+            message_tool = agent.tools.get("message")
+            if isinstance(message_tool, MessageTool) and message_tool._sent_in_turn:
+                return response
+
+            # Optionally deliver agent's response to user
+            if job.payload.to and response:
+                from nanobot.bus.events import OutboundMessage
+                await bus.publish_outbound(OutboundMessage(
+                    channel=job.payload.channel or "cli",
+                    chat_id=job.payload.to,
+                    content=response
+                ))
             return response
-
-        if job.payload.deliver and job.payload.to and response:
-            from nanobot.bus.events import OutboundMessage
-            await bus.publish_outbound(OutboundMessage(
-                channel=job.payload.channel or "cli",
-                chat_id=job.payload.to,
-                content=response
-            ))
-        return response
     cron.on_job = on_cron_job
 
     # Create channel manager
