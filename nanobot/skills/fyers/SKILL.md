@@ -54,28 +54,6 @@ check_auth_status()  # Should confirm authenticated
 
 ---
 
-## MCP Configuration
-
-Add to your `~/.nanobot/config.json`:
-
-```json
-{
-  "tools": {
-    "mcp_servers": {
-      "fyers": {
-        "url": "http://localhost:8000/sse/"
-      }
-    }
-  }
-}
-```
-
-**Prerequisites:**
-- Fyers MCP server running on port 8000
-- Set `FYERS_APP_ID` and `FYERS_SECRET_KEY` in server's `.env`
-
----
-
 ## Tools Reference (27 Tools)
 
 ### Authentication (6 tools)
