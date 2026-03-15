@@ -1,6 +1,6 @@
 ---
 name: cron
-description: Schedule reminders and recurring tasks with two delivery modes.
+description: Schedule reminders and recurring tasks with two delivery modes. Use this skill whenever the user asks to set a reminder, schedule a task, create a recurring notification, or mentions anything about timing like "remind me", "every day", "schedule", "at 5pm", "in 2 hours", "daily", "weekly", "cron", "timer", or "alarm". Also use when user wants automated periodic checks or recurring agent tasks.
 metadata: {"nanobot":{"emoji":"⏰","always":false}}
 ---
 
