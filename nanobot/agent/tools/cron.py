@@ -66,6 +66,11 @@ class CronTool(Tool):
                     "description": "ISO datetime for one-time execution (e.g. '2026-02-12T10:30:00')",
                 },
                 "job_id": {"type": "string", "description": "Job ID (for remove)"},
+                "deliver": {
+                    "type": "boolean",
+                    "description": "If TRUE: simple reminder sent directly to user (no agent processing). If FALSE: agent processes the task at trigger time. Default: true.",
+                    "default": True,
+                },
             },
             "required": ["action"],
         }
@@ -73,18 +78,19 @@ class CronTool(Tool):
     async def execute(
         self,
         action: str,
-        message: str = "",
+        message: str | None = None,
         every_seconds: int | None = None,
         cron_expr: str | None = None,
         tz: str | None = None,
         at: str | None = None,
         job_id: str | None = None,
+        deliver: bool = True,
         **kwargs: Any,
     ) -> str:
         if action == "add":
             if self._in_cron_context.get():
                 return "Error: cannot schedule new jobs from within a cron job execution"
-            return self._add_job(message, every_seconds, cron_expr, tz, at)
+            return self._add_job(message, every_seconds, cron_expr, tz, at, deliver)
         elif action == "list":
             return self._list_jobs()
         elif action == "remove":
@@ -93,11 +99,12 @@ class CronTool(Tool):
 
     def _add_job(
         self,
-        message: str,
+        message: str | None,
         every_seconds: int | None,
         cron_expr: str | None,
         tz: str | None,
         at: str | None,
+        deliver: bool = True,
     ) -> str:
         if not message:
             return "Error: message is required for add"
@@ -136,7 +143,7 @@ class CronTool(Tool):
             name=message[:30],
             schedule=schedule,
             message=message,
-            deliver=True,
+            deliver=deliver,
             channel=self._channel,
             to=self._chat_id,
             delete_after_run=delete_after,
